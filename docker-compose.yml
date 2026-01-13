@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  qte:
+    build: .
+    image: quantum-theory-engine:latest
+    volumes:
+      - ./workspace:/workspace
+      - ./dsl_examples:/examples
+    environment:
+      - RUST_LOG=info
+    command: ["--help"]
+
+  qte-dev:
+    build:
+      context: .
+      target: builder
+    image: quantum-theory-engine:dev
+    volumes:
+      - .:/app
+      - ./workspace:/workspace
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+    environment:
+      - RUST_LOG=debug
+    working_dir: /app
+    command: ["bash"]
+    stdin_open: true
+    tty: true
+
+volumes:
+  cargo-cache:
+  target-cache:

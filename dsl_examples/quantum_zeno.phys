@@ -1,0 +1,57 @@
+// Quantum Zeno Effect
+// Demonstrates how frequent measurements can "freeze" quantum evolution
+
+const omega = 1.0;
+const measurement_interval = 0.1;
+
+matrix sigma_x = [[0, 1], [1, 0]];
+matrix sigma_z = [[1, 0], [0, -1]];
+
+// Hamiltonian that would cause rotation from |0⟩ to |1⟩
+Hamiltonian H = omega * sigma_x;
+
+// Projector onto |0⟩ state
+matrix P0 = [[1, 0], [0, 0]];
+matrix P1 = [[0, 0], [0, 1]];
+
+measure frequent: Projective([
+  [[1, 0], [0, 0]],  // |0⟩⟨0|
+  [[0, 0], [0, 1]]   // |1⟩⟨1|
+]);
+
+// Experiment with frequent measurements
+experiment zeno_frequent {
+  init: ket(vec(1, 0));  // Start in |0⟩
+  
+  evolution: evolve(init, H, timegrid=(0.0, 0.01, 501));
+  
+  // Measure every 0.1 time units (10 timesteps)
+  measurements: [
+    (0.0, frequent),
+    (0.1, frequent),
+    (0.2, frequent),
+    (0.3, frequent),
+    (0.4, frequent),
+    (0.5, frequent),
+    (1.0, frequent),
+    (2.0, frequent),
+    (5.0, frequent)
+  ];
+}
+
+// Experiment with rare measurements (for comparison)
+experiment zeno_rare {
+  init: ket(vec(1, 0));
+  
+  evolution: evolve(init, H, timegrid=(0.0, 0.01, 501));
+  
+  measurements: [
+    (0.0, frequent),
+    (5.0, frequent)
+  ];
+}
+
+// Expected behavior:
+// - Frequent measurements: State remains mostly in |0⟩ (Zeno effect)
+// - Rare measurements: State undergoes Rabi oscillations
+// - Demonstrates measurement back-action in quantum mechanics

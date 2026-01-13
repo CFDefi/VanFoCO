@@ -1,0 +1,47 @@
+// Spin chain dynamics with nearest-neighbor interactions
+// Models magnetic ordering and spin wave propagation
+
+system HeisenbergChain {
+    param J_xx = 1.0;      // Exchange coupling (x)
+    param J_yy = 1.0;      // Exchange coupling (y)
+    param J_zz = 1.0;      // Exchange coupling (z)
+    param B_z = 0.0;       // External magnetic field
+    param N = 4;           // Number of spins
+    param t_max = 10.0;    // Evolution time
+    
+    // Chain of N spins
+    space = qubit("s0") * qubit("s1") * qubit("s2") * qubit("s3");
+    
+    // Initial state: all spins up except one down (domain wall)
+    state psi_0 = |1101>;
+    
+    // Heisenberg Hamiltonian: nearest-neighbor interactions
+    hamiltonian H = sum over i in 0..(N-1) {
+        J_xx * sigma_x(s_i) * sigma_x(s_{i+1}) +
+        J_yy * sigma_y(s_i) * sigma_y(s_{i+1}) +
+        J_zz * sigma_z(s_i) * sigma_z(s_{i+1})
+    } + sum over i in 0..N {
+        B_z * sigma_z(s_i)
+    };
+    
+    // Measure total magnetization
+    observable magnetization = sum over i in 0..N {
+        <psi | sigma_z(s_i) | psi>
+    };
+    
+    // Spin correlations
+    observable correlation_01 = <psi | sigma_z(s0) * sigma_z(s1) | psi>;
+    
+    // Time evolution
+    evolve schrodinger(psi_0, H, t_max);
+    
+    // Sample at regular intervals
+    measure magnetization every 0.1 from 0 to t_max;
+    measure correlation_01 every 0.1 from 0 to t_max;
+}
+
+// Example use cases:
+// - Ferromagnetic (J > 0): spins align
+// - Antiferromagnetic (J < 0): alternating pattern
+// - Spin waves: collective excitations
+// - Quantum phase transitions at critical J

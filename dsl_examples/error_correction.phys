@@ -1,0 +1,71 @@
+// Three-qubit bit-flip error correction code
+// Protects against single-qubit X errors
+
+system BitFlipCode {
+    param p = 0.1;          // Error probability per qubit
+    param t_measure = 1.0;  // Measurement time
+    
+    // 3 physical qubits encode 1 logical qubit
+    space = qubit("q0") * qubit("q1") * qubit("q2");
+    
+    // Encode logical |0> = |000>, |1> = |111>
+    // Start with logical |+> = (|000> + |111>) / sqrt(2)
+    state psi_logical = (|000> + |111>) / sqrt(2);
+    
+    // Bit-flip errors (X gates)
+    operator error_0 = sigma_x(q0);
+    operator error_1 = sigma_x(q1);
+    operator error_2 = sigma_x(q2);
+    
+    // Apply random errors with probability p
+    apply_random {
+        error_0 with probability p,
+        error_1 with probability p,
+        error_2 with probability p
+    } to psi_logical;
+    
+    // Syndrome measurement: parity checks
+    // Z0Z1 and Z1Z2 (non-destructive)
+    observable syndrome_01 = <psi | sigma_z(q0) * sigma_z(q1) | psi>;
+    observable syndrome_12 = <psi | sigma_z(q1) * sigma_z(q2) | psi>;
+    
+    measure syndrome_01, syndrome_12;
+    
+    // Decode syndromes to find error location
+    // syndrome_01 syndrome_12 -> error on qubit
+    //     +1         +1       -> no error (or 3 errors)
+    //     -1         +1       -> error on q0
+    //     -1         -1       -> error on q1  
+    //     +1         -1       -> error on q2
+    
+    correction {
+        if syndrome_01 == -1 and syndrome_12 == +1:
+            apply sigma_x(q0);
+        elif syndrome_01 == -1 and syndrome_12 == -1:
+            apply sigma_x(q1);
+        elif syndrome_01 == +1 and syndrome_12 == -1:
+            apply sigma_x(q2);
+    }
+    
+    // Measure fidelity after correction
+    observable fidelity = |<psi_logical | psi_corrected>|^2;
+    
+    // Logical error rate
+    test {
+        repeat 1000 {
+            reset to psi_logical;
+            apply_errors();
+            measure_syndrome();
+            correct();
+            record fidelity;
+        }
+        
+        assert mean(fidelity) > 0.99;  // Should recover almost perfectly
+    }
+}
+
+// Extensions:
+// - Phase-flip code: use Z errors instead of X
+// - Shor code: combines bit-flip and phase-flip (9 qubits)
+// - Surface codes: 2D lattice with local checks
+// - LDPC codes: sparse parity checks

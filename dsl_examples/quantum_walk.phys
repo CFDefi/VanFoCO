@@ -1,0 +1,57 @@
+// Quantum walk on a 1D lattice
+// Demonstrates quantum interference and ballistic spreading
+
+system QuantumWalk1D {
+    param N = 11;           // Lattice sites (odd for symmetry)
+    param t_max = 20.0;     // Evolution time
+    param theta = 0.0;      // Coin bias angle
+    
+    // Position space: N sites
+    // Coin space: 2 states (L/R)
+    space = position(N) * coin(2);
+    
+    // Start at center with balanced superposition
+    let center = (N - 1) / 2;
+    state psi_0 = |center, +>;  // |position, coin>
+    
+    // Hadamard coin operator
+    operator coin_flip = cos(theta) * |0><0| + sin(theta) * |0><1| +
+                         sin(theta) * |1><0| - cos(theta) * |1><1|;
+    
+    // Shift operator: move based on coin
+    operator shift = sum over x in 0..(N-1) {
+        |x+1, 0><x, 0| +  // Move right if coin = 0
+        |x-1, 1><x, 1|    // Move left if coin = 1
+    };
+    
+    // One step: coin flip then shift
+    operator step = shift * (coin_flip ⊗ I_position);
+    
+    // Hamiltonian for continuous-time walk
+    hamiltonian H = -i * log(step);
+    
+    // Position distribution
+    observable position_prob = sum over x in 0..N {
+        |<x| psi>|^2
+    };
+    
+    // Variance (spreading rate)
+    observable variance = sum over x in 0..N {
+        (x - center)^2 * |<x| psi>|^2
+    };
+    
+    // Discrete-time evolution
+    for t in 0..t_max {
+        psi = step * psi;
+        measure position_prob at t;
+    }
+    
+    // Expected: ballistic spreading (variance ~ t^2)
+    // Compare to classical random walk (variance ~ t)
+}
+
+// Applications:
+// - Quantum search algorithms
+// - Quantum transport in condensed matter
+// - Universal quantum computation
+// - Quantum simulation of relativistic particles

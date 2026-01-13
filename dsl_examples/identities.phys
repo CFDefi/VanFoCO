@@ -1,0 +1,191 @@
+// Proof Examples: Common Quantum Identities
+//
+// This file demonstrates the prover module's capabilities
+// by proving fundamental quantum mechanical identities
+
+// ========== PAULI MATRICES ==========
+
+matrix sigma_x = [[0, 1], [1, 0]];
+matrix sigma_y = [[0, -i], [i, 0]];
+matrix sigma_z = [[1, 0], [0, -1]];
+matrix identity = [[1, 0], [0, 1]];
+
+assume {
+    sigma_x is Hermitian;
+    sigma_y is Hermitian;
+    sigma_z is Hermitian;
+}
+
+// ========== BASIC PROPERTIES ==========
+
+// Pauli matrices square to identity
+prove sigma_x * sigma_x == identity;
+prove sigma_y * sigma_y == identity;
+prove sigma_z * sigma_z == identity;
+
+// Pauli matrices are Hermitian
+prove Hermitian(sigma_x);
+prove Hermitian(sigma_y);
+prove Hermitian(sigma_z);
+
+// Pauli matrices are traceless
+prove trace(sigma_x) == 0;
+prove trace(sigma_y) == 0;
+prove trace(sigma_z) == 0;
+
+// ========== COMMUTATION RELATIONS ==========
+
+// [σ_x, σ_y] = 2i σ_z
+prove [sigma_x, sigma_y] == 2*i*sigma_z;
+
+// [σ_y, σ_z] = 2i σ_x
+prove [sigma_y, sigma_z] == 2*i*sigma_x;
+
+// [σ_z, σ_x] = 2i σ_y
+prove [sigma_z, sigma_x] == 2*i*sigma_y;
+
+// Any operator commutes with itself
+prove [sigma_x, sigma_x] == 0;
+prove [sigma_y, sigma_y] == 0;
+prove [sigma_z, sigma_z] == 0;
+
+// ========== ANTICOMMUTATION RELATIONS ==========
+
+// {σ_x, σ_y} = 0
+prove {sigma_x, sigma_y} == 0;
+
+// {σ_x, σ_z} = 0
+prove {sigma_x, sigma_z} == 0;
+
+// {σ_y, σ_z} = 0
+prove {sigma_y, sigma_z} == 0;
+
+// {σ_i, σ_i} = 2I
+prove {sigma_x, sigma_x} == 2*identity;
+prove {sigma_y, sigma_y} == 2*identity;
+prove {sigma_z, sigma_z} == 2*identity;
+
+// ========== DAGGER PROPERTIES ==========
+
+// Pauli matrices are self-adjoint
+prove dagger(sigma_x) == sigma_x;
+prove dagger(sigma_y) == sigma_y;
+prove dagger(sigma_z) == sigma_z;
+
+// Double dagger cancels
+prove dagger(dagger(sigma_x)) == sigma_x;
+
+// Dagger distributes over sums
+prove dagger(sigma_x + sigma_y) == dagger(sigma_x) + dagger(sigma_y);
+
+// Dagger reverses products
+prove dagger(sigma_x * sigma_y) == dagger(sigma_y) * dagger(sigma_x);
+
+// ========== COMPOSITE OPERATORS ==========
+
+// Define raising and lowering operators
+matrix sigma_plus = [[0, 1], [0, 0]];
+matrix sigma_minus = [[0, 0], [1, 0]];
+
+// σ_+ = (σ_x + i σ_y) / 2
+prove sigma_plus == (sigma_x + i*sigma_y) / 2;
+
+// σ_- = (σ_x - i σ_y) / 2
+prove sigma_minus == (sigma_x - i*sigma_y) / 2;
+
+// σ_z = σ_+ σ_- - σ_- σ_+
+prove sigma_z == sigma_plus * sigma_minus - sigma_minus * sigma_plus;
+
+// [σ_+, σ_-] = σ_z
+prove [sigma_plus, sigma_minus] == sigma_z;
+
+// ========== PROJECTORS ==========
+
+matrix P0 = [[1, 0], [0, 0]];  // |0⟩⟨0|
+matrix P1 = [[0, 0], [0, 1]];  // |1⟩⟨1|
+
+// Projectors are Hermitian
+prove Hermitian(P0);
+prove Hermitian(P1);
+
+// Projectors are idempotent
+prove Idempotent(P0);
+prove Idempotent(P1);
+
+// Projectors sum to identity (completeness)
+prove P0 + P1 == identity;
+
+// Projectors are orthogonal
+prove P0 * P1 == 0;
+prove P1 * P0 == 0;
+
+// ========== TRACE PROPERTIES ==========
+
+// Trace is linear
+prove trace(2*sigma_x) == 2*trace(sigma_x);
+prove trace(sigma_x + sigma_y) == trace(sigma_x) + trace(sigma_y);
+
+// Trace is cyclic
+prove trace(sigma_x * sigma_y) == trace(sigma_y * sigma_x);
+prove trace(sigma_x * sigma_y * sigma_z) == trace(sigma_z * sigma_x * sigma_y);
+
+// Trace of projector gives dimension
+prove trace(P0) == 1;
+prove trace(P1) == 1;
+prove trace(P0 + P1) == 2;
+
+// ========== TENSOR PRODUCTS ==========
+
+// Define two-qubit Pauli operators
+matrix I_I = tensor(identity, identity);
+matrix X_I = tensor(sigma_x, identity);
+matrix I_X = tensor(identity, sigma_x);
+matrix Z_Z = tensor(sigma_z, sigma_z);
+
+// Tensor product properties
+prove tensor(identity, identity) * tensor(sigma_x, sigma_y) == tensor(sigma_x, sigma_y);
+
+// Commutativity of tensor factors
+prove [X_I, I_X] == 0;
+prove [tensor(sigma_x, identity), tensor(identity, sigma_y)] == 0;
+
+// ========== DENSITY MATRICES ==========
+
+// Pure state density matrix: ρ = |0⟩⟨0|
+matrix rho_0 = [[1, 0], [0, 0]];
+
+// Properties of density matrices
+prove Hermitian(rho_0);
+prove PSD(rho_0);
+prove TraceOne(rho_0);
+
+// Purity: Tr(ρ²) = 1 for pure states
+prove trace(rho_0 * rho_0) == 1;
+
+// Mixed state
+matrix rho_mixed = [[0.5, 0], [0, 0.5]];
+
+prove Hermitian(rho_mixed);
+prove PSD(rho_mixed);
+prove TraceOne(rho_mixed);
+
+// Mixed state is not pure: Tr(ρ²) < 1
+prove trace(rho_mixed * rho_mixed) == 0.5;
+
+// ========== EXPECTED OUTPUT ==========
+
+// When this file is run with `qtheory prove identities.phys`, it should:
+// 1. Generate a proof trace for each `prove` statement
+// 2. Export certificates for each proven identity
+// 3. Create a summary report showing:
+//    - Total proofs attempted: ~40
+//    - Successful proofs: ~40
+//    - Failed proofs: 0
+//    - Proof method breakdown:
+//      * Symbolic: ~35 (rewrite rules)
+//      * Numeric: ~5 (PSD/trace checks)
+// 4. Save all certificates to: out/proofs/identities_certificates.json
+// 5. Generate verification commands for independent checking
+
+show [sigma_x, sigma_y] as canonical;  // Should display: 2i*sigma_z
+show dagger(sigma_x * sigma_y) as expanded;  // Should display: sigma_y† * sigma_x†

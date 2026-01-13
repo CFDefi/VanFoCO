@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Quantum Theory Engine Reproducibility Manifest",
+  "description": "Complete metadata for reproducing a quantum simulation",
+  "type": "object",
+  "required": [
+    "version",
+    "engine_version",
+    "timestamp",
+    "dsl_file",
+    "parameters",
+    "backend_config"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest schema version",
+      "const": "1.0"
+    },
+    "engine_version": {
+      "type": "string",
+      "description": "Quantum theory engine version (semver)"
+    },
+    "git_commit": {
+      "type": "string",
+      "description": "Git commit hash of the engine (if available)",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of execution"
+    },
+    "dsl_file": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the DSL source file"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "SHA-256 hash of the DSL file",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "content": {
+          "type": "string",
+          "description": "Optional: inline DSL source for complete reproducibility"
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Parameter values used in the simulation",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "backend_config": {
+      "type": "object",
+      "required": ["backend_type"],
+      "properties": {
+        "backend_type": {
+          "type": "string",
+          "enum": ["cpu-dense", "cpu-sparse", "gpu"]
+        },
+        "num_threads": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "device_id": {
+          "type": "integer",
+          "description": "GPU device ID (if applicable)"
+        }
+      }
+    },
+    "random_seed": {
+      "type": "integer",
+      "description": "Random seed for stochastic simulations"
+    },
+    "system_info": {
+      "type": "object",
+      "properties": {
+        "os": {
+          "type": "string",
+          "description": "Operating system"
+        },
+        "cpu": {
+          "type": "string",
+          "description": "CPU model"
+        },
+        "memory_gb": {
+          "type": "number",
+          "description": "Total system memory in GB"
+        },
+        "blas_library": {
+          "type": "string",
+          "description": "BLAS/LAPACK library used (OpenBLAS, MKL, etc.)"
+        }
+      }
+    },
+    "data_files": {
+      "type": "array",
+      "description": "Input data files (if any)",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "output_files": {
+      "type": "array",
+      "description": "Output files generated",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "format": {
+            "type": "string",
+            "description": "File format (HDF5, Parquet, JSON, etc.)"
+          }
+        }
+      }
+    },
+    "execution_time_seconds": {
+      "type": "number",
+      "description": "Total execution time in seconds"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or metadata"
+    }
+  }
+}

@@ -1,0 +1,169 @@
+// Quantum Theory Engine - PEG Grammar (Pest)
+// Defines the concrete syntax for the quantum physics DSL
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT = _{ "//" ~ (!"\n" ~ ANY)* | "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+// ==================== Program Structure ====================
+
+program = { SOI ~ statement* ~ EOI }
+
+statement = {
+    const_decl
+  | symbol_decl
+  | matrix_decl
+  | function_def
+  | hamiltonian_def
+  | measurement_def
+  | experiment
+}
+
+// ==================== Declarations ====================
+
+const_decl = { "const" ~ identifier ~ "=" ~ number ~ ";" }
+symbol_decl = { "symbol" ~ identifier ~ ";" }
+matrix_decl = { "matrix" ~ identifier ~ "=" ~ matrix_literal ~ ";" }
+
+function_def = {
+    "func" ~ identifier ~ "(" ~ param_list? ~ ")" ~ "=" ~ expr ~ ";"
+}
+
+param_list = { identifier ~ ("," ~ identifier)* }
+
+// ==================== Hamiltonians ====================
+
+hamiltonian_def = {
+    "Hamiltonian" ~ identifier ~ ("(" ~ param_list ~ ")")? ~ "=" ~ expr ~ ";"
+}
+
+// ==================== Measurements ====================
+
+measurement_def = { "measure" ~ identifier ~ ":" ~ measurement_spec ~ ";" }
+
+measurement_spec = { projective_measurement | povm_measurement }
+
+projective_measurement = {
+    "Projective" ~ "(" ~ "[" ~ matrix_literal ~ ("," ~ matrix_literal)* ~ "]" ~ ")"
+}
+
+povm_measurement = {
+    "POVM" ~ "(" ~ "[" ~ matrix_literal ~ ("," ~ matrix_literal)* ~ "]" ~ ")"
+}
+
+// ==================== Experiments ====================
+
+experiment = { "experiment" ~ identifier ~ "{" ~ experiment_body ~ "}" }
+
+experiment_body = { experiment_statement* }
+
+experiment_statement = {
+    init_statement
+  | evolution_statement
+  | measurement_schedule_statement
+}
+
+init_statement = { "init" ~ ":" ~ state_spec ~ ";" }
+
+state_spec = {
+    "ket" ~ "(" ~ vector_literal ~ ")"
+  | "rho" ~ "(" ~ matrix_literal ~ ")"
+}
+
+evolution_statement = { "evolution" ~ ":" ~ evolution_spec ~ ";" }
+
+evolution_spec = {
+    "evolve" ~ "(" ~ identifier ~ "," ~ identifier ~ "," ~ timegrid ~ ("," ~ lindblad_term)* ~ ")"
+}
+
+lindblad_term = { "Lindblad" ~ "(" ~ identifier ~ "," ~ expr ~ ")" }
+
+timegrid = {
+    "timegrid" ~ "=" ~ "(" ~ number ~ "," ~ number ~ "," ~ integer ~ ")"
+  | "times" ~ "=" ~ "[" ~ number ~ ("," ~ number)* ~ "]"
+}
+
+measurement_schedule_statement = {
+    "measurements" ~ ":" ~ "[" ~ measurement_event ~ ("," ~ measurement_event)* ~ "]" ~ ";"
+}
+
+measurement_event = { "(" ~ number ~ "," ~ identifier ~ ")" }
+
+// ==================== Expressions ====================
+
+expr = { term ~ ((add_op | sub_op) ~ term)* }
+
+term = { factor ~ ((mul_op | div_op) ~ factor)* }
+
+factor = { primary ~ (pow_op ~ number)? }
+
+primary = {
+    builtin_function
+  | matrix_literal
+  | vector_literal
+  | number
+  | identifier
+  | "(" ~ expr ~ ")"
+}
+
+builtin_function = {
+    "dagger" ~ "(" ~ expr ~ ")"
+  | "trace" ~ "(" ~ expr ~ ")"
+  | "tensor" ~ "(" ~ expr ~ "," ~ expr ~ ")"
+  | "commutator" ~ "(" ~ expr ~ "," ~ expr ~ ")"
+  | "anticommutator" ~ "(" ~ expr ~ "," ~ expr ~ ")"
+  | "expm" ~ "(" ~ expr ~ ")"
+  | "sqrt" ~ "(" ~ expr ~ ")"
+  | "sin" ~ "(" ~ expr ~ ")"
+  | "cos" ~ "(" ~ expr ~ ")"
+  | "exp" ~ "(" ~ expr ~ ")"
+}
+
+// ==================== Operators ====================
+
+add_op = { "+" }
+sub_op = { "-" }
+mul_op = { "*" }
+div_op = { "/" }
+pow_op = { "^" }
+
+// ==================== Literals ====================
+
+matrix_literal = { "[" ~ matrix_row ~ (";" ~ matrix_row)* ~ "]" }
+
+matrix_row = { expr ~ ("," ~ expr)* }
+
+vector_literal = { "vec" ~ "(" ~ expr ~ ("," ~ expr)* ~ ")" }
+
+// ==================== Numbers ====================
+
+number = @{
+    "-"? ~ (float | integer)
+}
+
+float = @{
+    ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ exponent?
+  | ASCII_DIGIT+ ~ exponent
+}
+
+integer = @{ ASCII_DIGIT+ }
+
+exponent = @{ ("e" | "E") ~ ("+" | "-")? ~ ASCII_DIGIT+ }
+
+// Complex number suffix (imaginary unit)
+complex_i = @{ "i" | "I" }
+
+// ==================== Identifiers ====================
+
+identifier = @{
+    (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*
+}
+
+// ==================== Keywords (reserved) ====================
+
+keyword = _{
+    "const" | "symbol" | "matrix" | "func" | "Hamiltonian" | "measure"
+  | "Projective" | "POVM" | "experiment" | "init" | "ket" | "rho"
+  | "evolution" | "evolve" | "Lindblad" | "timegrid" | "times"
+  | "measurements" | "dagger" | "trace" | "tensor" | "commutator"
+  | "anticommutator" | "expm" | "sqrt" | "sin" | "cos" | "exp"
+}

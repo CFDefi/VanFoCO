@@ -1,0 +1,148 @@
+(* Quantum Theory Engine DSL Grammar - EBNF Specification *)
+(* This grammar defines a domain-specific language for quantum theory definitions *)
+
+(* ==================== Top Level ==================== *)
+
+program = { statement } ;
+
+statement = declaration
+          | function_def
+          | hamiltonian_def
+          | measurement_def
+          | experiment ;
+
+(* ==================== Declarations ==================== *)
+
+declaration = const_decl
+            | symbol_decl
+            | matrix_decl ;
+
+const_decl = "const" , identifier , "=" , number , ";" ;
+
+symbol_decl = "symbol" , identifier , ";" ;
+
+matrix_decl = "matrix" , identifier , "=" , matrix_literal , ";" ;
+
+function_def = "func" , identifier , "(" , [ param_list ] , ")" , "=" , expr , ";" ;
+
+param_list = identifier , { "," , identifier } ;
+
+(* ==================== Expressions ==================== *)
+
+expr = term , { ( "+" | "-" ) , term } ;
+
+term = factor , { ( "*" | "/" ) , factor } ;
+
+factor = primary , [ "^" , number ] ;
+
+primary = number
+        | identifier
+        | "(" , expr , ")"
+        | matrix_literal
+        | vector_literal
+        | builtin_function ;
+
+builtin_function = "dagger" , "(" , expr , ")"
+                 | "trace" , "(" , expr , ")"
+                 | "tensor" , "(" , expr , "," , expr , ")"
+                 | "commutator" , "(" , expr , "," , expr , ")"
+                 | "anticommutator" , "(" , expr , "," , expr , ")"
+                 | "expm" , "(" , expr , ")"
+                 | "sqrt" , "(" , expr , ")"
+                 | "sin" , "(" , expr , ")"
+                 | "cos" , "(" , expr , ")"
+                 | "exp" , "(" , expr , ")" ;
+
+(* ==================== Matrix and Vector Literals ==================== *)
+
+matrix_literal = "[" , matrix_rows , "]" ;
+
+matrix_rows = matrix_row , { ";" , matrix_row } ;
+
+matrix_row = expr , { "," , expr } ;
+
+vector_literal = "vec" , "(" , expr_list , ")" ;
+
+expr_list = expr , { "," , expr } ;
+
+(* ==================== Quantum Objects ==================== *)
+
+hamiltonian_def = "Hamiltonian" , identifier , [ "(" , param_list , ")" ] , "=" , expr , ";" ;
+
+measurement_def = "measure" , identifier , ":" , measurement_spec , ";" ;
+
+measurement_spec = projective_measurement
+                 | povm_measurement ;
+
+projective_measurement = "Projective" , "(" , projector_list , ")" ;
+
+povm_measurement = "POVM" , "(" , effect_list , ")" ;
+
+projector_list = "[" , matrix_literal , { "," , matrix_literal } , "]" ;
+
+effect_list = "[" , matrix_literal , { "," , matrix_literal } , "]" ;
+
+(* ==================== Evolution ==================== *)
+
+evolution_spec = "evolve" , "(" , state_expr , "," , identifier , "," , timegrid , [ "," , lindblad_list ] , ")" ;
+
+lindblad_list = lindblad_term , { "," , lindblad_term } ;
+
+lindblad_term = "Lindblad" , "(" , identifier , "," , expr , ")" ;
+
+timegrid = "timegrid" , "=" , "(" , number , "," , number , "," , integer , ")"
+         | "times" , "=" , "[" , number_list , "]" ;
+
+number_list = number , { "," , number } ;
+
+(* ==================== Experiments ==================== *)
+
+experiment = "experiment" , identifier , "{" , experiment_body , "}" ;
+
+experiment_body = { experiment_statement } ;
+
+experiment_statement = init_statement
+                     | evolution_statement
+                     | measurement_schedule_statement ;
+
+init_statement = "init" , ":" , state_spec , ";" ;
+
+state_spec = "ket" , "(" , vector_literal , ")"
+           | "rho" , "(" , matrix_literal , ")" ;
+
+evolution_statement = "evolution" , ":" , evolution_spec , ";" ;
+
+measurement_schedule_statement = "measurements" , ":" , measurement_schedule , ";" ;
+
+measurement_schedule = "[" , measurement_event , { "," , measurement_event } , "]" ;
+
+measurement_event = "(" , number , "," , identifier , ")" ;
+
+(* ==================== Predefined Constants ==================== *)
+
+(* Standard Pauli matrices available as built-ins: *)
+(* sigma_x, sigma_y, sigma_z, identity *)
+
+(* ==================== Lexical Elements ==================== *)
+
+identifier = letter , { letter | digit | "_" } ;
+
+number = [ "-" ] , ( integer | float ) ;
+
+integer = digit , { digit } ;
+
+float = digit , { digit } , "." , { digit } , [ exponent ]
+      | digit , { digit } , exponent ;
+
+exponent = ( "e" | "E" ) , [ "+" | "-" ] , digit , { digit } ;
+
+letter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m"
+       | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z"
+       | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
+       | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+(* Whitespace and comments are ignored *)
+(* Single-line comments: // ... *)
+(* Multi-line comments: /* ... */ *)

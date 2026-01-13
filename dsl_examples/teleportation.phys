@@ -1,0 +1,80 @@
+// Quantum teleportation: transfer state using entanglement and classical communication
+// Demonstrates EPR pairs and measurement collapse
+
+system QuantumTeleportation {
+    // Alice wants to send |psi> to Bob
+    // They share an entangled pair
+    
+    // 3 qubits: Alice's message, Alice's EPR, Bob's EPR
+    space = qubit("msg") * qubit("alice") * qubit("bob");
+    
+    // Unknown state to teleport (example: |psi> = a|0> + b|1>)
+    param alpha = 0.6;
+    param beta = 0.8;  // Normalized: alpha^2 + beta^2 = 1
+    state psi_msg = alpha * |0> + beta * |1>;
+    
+    // Step 1: Prepare EPR pair (Bell state)
+    state bell_pair = (|00> + |11>) / sqrt(2);  // On alice-bob qubits
+    
+    // Initial joint state: |psi> ⊗ |Φ+>
+    state psi_0 = psi_msg ⊗ bell_pair;
+    // = (alpha|0> + beta|1>) ⊗ (|00> + |11>) / sqrt(2)
+    // = (alpha|000> + alpha|011> + beta|100> + beta|111>) / sqrt(2)
+    
+    // Step 2: Alice applies CNOT and Hadamard
+    operator alice_gate = CNOT(msg, alice) * (H(msg) ⊗ I(alice) ⊗ I(bob));
+    state psi_1 = alice_gate * psi_0;
+    
+    // Rewrite in Bell basis (msg-alice) ⊗ bob:
+    // |00> ⊗ (alpha|0> + beta|1>)   (prob 1/4)
+    // |01> ⊗ (alpha|1> + beta|0>)   (prob 1/4)
+    // |10> ⊗ (alpha|0> - beta|1>)   (prob 1/4)
+    // |11> ⊗ (alpha|1> - beta|0>)   (prob 1/4)
+    
+    // Step 3: Alice measures msg and alice qubits
+    measure msg, alice -> (m0, m1);
+    
+    // Measurement collapses Bob's state (up to correction)
+    state bob_state = project(psi_1, msg=m0, alice=m1);
+    
+    // Step 4: Alice sends classical bits (m0, m1) to Bob
+    // Bob applies correction based on measurement outcome
+    correction bob_correction {
+        if m1 == 1:
+            apply sigma_x(bob);  // Bit flip
+        if m0 == 1:
+            apply sigma_z(bob);  // Phase flip
+    }
+    
+    state psi_final = bob_correction * bob_state;
+    
+    // Verify: Bob's state equals original |psi>
+    observable fidelity = |<psi_msg | psi_final>|^2;
+    
+    test {
+        assert fidelity == 1.0;  // Perfect transfer!
+        
+        // Note: Alice didn't measure |psi> directly (no-cloning)
+        // Original |psi> was destroyed by measurement
+        // Bob reconstructed it using entanglement
+    }
+    
+    // Key resources
+    resources {
+        entangled_pairs = 1;     // EPR pair
+        classical_bits = 2;      // Measurement outcomes
+        quantum_gates = 3;       // CNOT, H, corrections
+        qubits = 3;              // msg, alice, bob
+    }
+}
+
+// Applications:
+// - Quantum networks and quantum internet
+// - Distributed quantum computing
+// - Quantum repeaters for long-distance communication
+// - Quantum state transfer in processors
+
+// Extensions:
+// - Entanglement swapping: teleport entanglement
+// - Quantum dense coding: send 2 bits using 1 qubit + entanglement
+// - Remote state preparation

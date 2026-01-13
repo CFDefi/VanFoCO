@@ -1,0 +1,50 @@
+// Rabi Oscillation Example
+// A two-level quantum system driven by an oscillating field
+// Demonstrates closed-system evolution with projective measurements
+
+// Define physical parameters
+const omega = 1.0;      // Natural frequency (energy splitting)
+const Omega = 0.2;      // Rabi frequency (coupling strength)
+
+// Define Pauli matrices explicitly for clarity
+matrix sigma_z = [[1, 0], [0, -1]];
+matrix sigma_x = [[0, 1], [1, 0]];
+matrix sigma_y = [[0, -1i], [1i, 0]];
+
+// Time-independent Hamiltonian
+// H = (ω/2)σz + Ωσx
+Hamiltonian H = (omega/2) * sigma_z + Omega * sigma_x;
+
+// Define measurement operators (Z-basis projectors)
+measure z_basis: Projective([
+  [[1, 0], [0, 0]],  // |0⟩⟨0| projector
+  [[0, 0], [0, 1]]   // |1⟩⟨1| projector
+]);
+
+// Define the experiment
+experiment rabi {
+  // Initial state: |0⟩ (ground state)
+  init: ket(vec(1, 0));
+  
+  // Evolve from t=0 to t=5.0 with dt=0.01 (501 steps)
+  evolution: evolve(init, H, timegrid=(0.0, 0.01, 501));
+  
+  // Measure in Z-basis at each time step
+  measurements: [
+    (0.0, z_basis),
+    (0.5, z_basis),
+    (1.0, z_basis),
+    (1.5, z_basis),
+    (2.0, z_basis),
+    (2.5, z_basis),
+    (3.0, z_basis),
+    (3.5, z_basis),
+    (4.0, z_basis),
+    (4.5, z_basis),
+    (5.0, z_basis)
+  ];
+}
+
+// Expected behavior:
+// The population oscillates between |0⟩ and |1⟩ with period T ≈ 2π/Ω_eff
+// where Ω_eff = sqrt(omega^2 + Omega^2) is the generalized Rabi frequency
