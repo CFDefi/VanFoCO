@@ -1,0 +1,30 @@
+{
+  "projects": [
+    {
+      "id": "example-project",
+      "name": "Example Project",
+      "description": "This is an example project template",
+      "status": "planned",
+      "category": "general",
+      "technologies": [],
+      "repository": "",
+      "website": "",
+      "startDate": "",
+      "visibility": "public"
+    }
+  ],
+  "categories": [
+    "web-development",
+    "mobile-development",
+    "data-science",
+    "infrastructure",
+    "tools",
+    "general"
+  ],
+  "statuses": [
+    "planned",
+    "in-progress",
+    "completed",
+    "archived"
+  ]
+}
