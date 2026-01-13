@@ -1,0 +1,136 @@
+// Quantum Phase Estimation (QPE): estimate eigenvalues of unitary operators
+// Core subroutine for Shor's algorithm and quantum chemistry
+
+system QuantumPhaseEstimation {
+    param n_precision = 8;  // Number of precision qubits (estimates phase to 2^-n)
+    param n_system = 2;     // Size of system register
+    
+    // Precision register (n_precision qubits) + system register (n_system qubits)
+    space = precision(n_precision) * system(n_system);
+    
+    // Example: estimate eigenvalue of controlled-T gate
+    // T gate: |0> -> |0>, |1> -> e^{i*pi/4} |1>
+    // Eigenvalue: lambda = e^{i*phi}, phi = pi/4
+    // Goal: estimate phi to n_precision bits
+    
+    // System eigenvector (known): |1>
+    state psi_system = |01>;  // Example: |01> is eigenvector of some U
+    
+    // Initialize precision qubits to |++++...>
+    for i in 0..n_precision {
+        H on precision[i];
+    }
+    
+    // Initial state: (|0> + |1>)^{⊗n} |psi>
+    state psi_0 = equal_superposition(n_precision) ⊗ psi_system;
+    
+    // Define unitary whose eigenvalue we want to measure
+    // Example: controlled-phase gate U|x> = e^{i*2pi*x/2^n_system}|x>
+    operator U = diag(1, exp(i * pi / 4));  // Eigenvalue e^{i*pi/4}
+    
+    // Apply controlled-U^{2^k} for k = 0, 1, ..., n_precision-1
+    for k in 0..(n_precision-1) {
+        let power = 2^k;
+        controlled_U = control(precision[k], U^power);
+        apply controlled_U to psi;
+    }
+    
+    // After controlled operations, precision qubits encode phase:
+    // |j> |psi> where j/2^n ≈ phi/(2*pi)
+    
+    // Apply inverse QFT to precision register
+    operator inv_QFT = inverse_quantum_fourier_transform(n_precision);
+    apply inv_QFT to precision_register;
+    
+    // Measure precision qubits
+    measure precision_register -> j;
+    
+    // Estimate phase
+    let phi_estimate = 2 * pi * j / (2^n_precision);
+    let eigenvalue_estimate = exp(i * phi_estimate);
+    
+    // Verify accuracy
+    test {
+        let true_phase = pi / 4;
+        let error = abs(phi_estimate - true_phase);
+        
+        print "Estimated phase: {:.6f}", phi_estimate;
+        print "True phase: {:.6f}", true_phase;
+        print "Error: {:.6e}", error;
+        
+        // With probability ~1, error < 2*pi / 2^n_precision
+        assert error < 2 * pi / (2^n_precision);
+    }
+    
+    // Quantum Fourier Transform implementation
+    circuit quantum_fourier_transform(n) {
+        for j in 0..(n-1) {
+            H on qubit[j];
+            
+            for k in (j+1)..(n-1) {
+                let phase = 2 * pi / (2^(k - j + 1));
+                controlled_phase(phase, control=qubit[k], target=qubit[j]);
+            }
+        }
+        
+        // Reverse qubit order (swap)
+        for j in 0..(n/2) {
+            swap qubit[j], qubit[n-1-j];
+        }
+    }
+    
+    // Application 1: Eigenvalue problems in quantum chemistry
+    chemistry_example {
+        // Hamiltonian H has eigenvector |psi> with eigenvalue E
+        // Use time evolution: U = e^{-i*H*t}
+        // Eigenvalue: e^{-i*E*t}, so E = -phi/t
+        
+        let H = molecular_hamiltonian(molecule="H2O");
+        let t = 1.0;  // Evolution time
+        let psi_eigenstate = ground_state_guess(H);
+        
+        // Run QPE with U = e^{-i*H*t}
+        phi = quantum_phase_estimation(U=exp(-i*H*t), psi=psi_eigenstate);
+        energy = -phi / t;
+        
+        print "Ground state energy: {:.6f} Ha", energy;
+    }
+    
+    // Application 2: Shor's algorithm (period finding)
+    period_finding {
+        // Find period r of f(x) = a^x mod N
+        // Encode in unitary: U|x>|y> = |x>|y + a^x mod N>
+        // Eigenvalues: e^{2*pi*i*s/r} for s = 0, 1, ..., r-1
+        // QPE gives s/r, then extract r using continued fractions
+        
+        let a = 7;   // Base
+        let N = 15;  // Modulus
+        let psi_uniform = equal_superposition(log2(N));
+        
+        phi_over_2pi = quantum_phase_estimation(U=modular_exponentiation(a, N), psi=psi_uniform);
+        
+        // Classical post-processing: continued fractions to find r
+        r = extract_period(phi_over_2pi, N);
+        
+        print "Period of {} mod {}: {}", a, N, r;
+        
+        // Factor N using r
+        if r is even and a^{r/2} != -1 mod N {
+            factor1 = gcd(a^{r/2} - 1, N);
+            factor2 = gcd(a^{r/2} + 1, N);
+            print "Factors of {}: {} and {}", N, factor1, factor2;
+        }
+    }
+}
+
+// QPE properties:
+// - Precision scales exponentially: n qubits -> 2^-n error
+// - Requires O(n) controlled-U gates
+// - Bottleneck: implementing controlled-U^{2^k} efficiently
+// - Success probability can be amplified to ~1
+
+// Applications:
+// - Quantum chemistry: energy estimation
+// - Shor's algorithm: factoring and discrete log
+// - Quantum simulation: spectroscopy
+// - Quantum machine learning: kernel estimation

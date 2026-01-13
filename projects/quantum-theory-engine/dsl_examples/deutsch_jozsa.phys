@@ -1,0 +1,82 @@
+// Deutsch-Jozsa algorithm: determine if function is constant or balanced
+// First quantum algorithm with exponential speedup over classical
+
+system DeutschJozsa {
+    param N = 3;  // Number of input qubits (f: {0,1}^N -> {0,1})
+    
+    // N input qubits + 1 output qubit
+    space = qubit("x0") * qubit("x1") * qubit("x2") * qubit("y");
+    
+    // Initial state: |0...0>|1>
+    state psi_0 = |000> ⊗ |1>;
+    
+    // Apply Hadamard to all qubits
+    operator H_all = H(x0) ⊗ H(x1) ⊗ H(x2) ⊗ H(y);
+    state psi_1 = H_all * psi_0;
+    // Result: (sum_x |x>) ⊗ (|0> - |1>) / sqrt(2^{N+1})
+    
+    // Oracle: U_f |x>|y> = |x>|y ⊕ f(x)>
+    // Example: balanced function f(x) = x0 ⊕ x1 ⊕ x2 (parity)
+    oracle balanced_oracle {
+        controlled_not control=[x0, x1, x2] target=y;
+    }
+    
+    // Alternative: constant function f(x) = 0 (identity)
+    oracle constant_oracle {
+        // Do nothing: U_f = I
+    }
+    
+    // Apply oracle (choose one)
+    let U_f = balanced_oracle;
+    state psi_2 = U_f * psi_1;
+    
+    // Phase kickback creates: sum_x (-1)^{f(x)} |x> ⊗ (|0> - |1>) / sqrt(2^{N+1})
+    
+    // Apply Hadamard to input qubits only
+    operator H_input = H(x0) ⊗ H(x1) ⊗ H(x2) ⊗ I(y);
+    state psi_3 = H_input * psi_2;
+    
+    // Interference result:
+    // - Constant f: amplify |0...0>
+    // - Balanced f: cancel |0...0>, distribute to others
+    
+    // Measure input qubits
+    measure x0, x1, x2;
+    
+    // Decision rule
+    decision {
+        if all_zero(x0, x1, x2):
+            output "CONSTANT";
+        else:
+            output "BALANCED";
+    }
+    
+    // Verify correctness
+    test {
+        // Test constant function
+        reset to psi_0;
+        apply constant_oracle;
+        result = measure();
+        assert result == |000>;  // Always measure 0...0
+        
+        // Test balanced function
+        reset to psi_0;
+        apply balanced_oracle;
+        result = measure();
+        assert result != |000>;  // Never measure 0...0
+    }
+    
+    // Complexity analysis
+    analyze {
+        quantum_queries = 1;       // Single oracle call
+        classical_queries = 2^(N-1) + 1;  // Need to check >50% of inputs
+        
+        speedup = classical_queries / quantum_queries;
+        print "Speedup factor: {}", speedup;  // Exponential in N!
+    }
+}
+
+// Generalizations:
+// - Bernstein-Vazirani: find hidden bitstring s where f(x) = s·x
+// - Simon's algorithm: find period of f(x ⊕ s) = f(x)
+// - Grover's algorithm: find x where f(x) = 1 (quadratic speedup)

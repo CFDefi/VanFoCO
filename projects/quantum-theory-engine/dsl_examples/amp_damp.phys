@@ -1,0 +1,89 @@
+// Amplitude Damping Channel Example
+// Models spontaneous emission / energy relaxation in an open quantum system
+// Demonstrates Lindblad master equation evolution
+
+// Physical parameters
+const omega = 0.5;      // Energy splitting
+const gamma = 0.1;      // Decay rate (inverse lifetime)
+
+// Pauli matrices
+matrix sigma_z = [[1, 0], [0, -1]];
+matrix sigma_x = [[0, 1], [1, 0]];
+
+// Lowering operator (sigma_minus)
+matrix L = [[0, 1], [0, 0]];
+
+// System Hamiltonian (just energy splitting)
+Hamiltonian H = (omega/2) * sigma_z;
+
+// Define Z-basis measurement
+measure z_basis: Projective([
+  [[1, 0], [0, 0]],  // |0⟩⟨0|
+  [[0, 0], [0, 1]]   // |1⟩⟨1|
+]);
+
+// Define X-basis measurement for additional observables
+measure x_basis: Projective([
+  [[0.5, 0.5], [0.5, 0.5]],    // |+⟩⟨+|
+  [[0.5, -0.5], [-0.5, 0.5]]   // |−⟩⟨−|
+]);
+
+experiment amp_damp {
+  // Initial state: excited state |1⟩ (as density matrix)
+  init: rho([[0, 0], [0, 1]]);
+  
+  // Evolve with Lindblad master equation
+  // dρ/dt = -i[H,ρ] + γ(LρL† - 1/2{L†L,ρ})
+  evolution: evolve(init, H, timegrid=(0.0, 0.05, 401), Lindblad(L, gamma));
+  
+  // Measure population decay in Z-basis
+  measurements: [
+    (0.0, z_basis),
+    (1.0, z_basis),
+    (2.0, z_basis),
+    (3.0, z_basis),
+    (4.0, z_basis),
+    (5.0, z_basis),
+    (6.0, z_basis),
+    (7.0, z_basis),
+    (8.0, z_basis),
+    (9.0, z_basis),
+    (10.0, z_basis),
+    (15.0, z_basis),
+    (20.0, z_basis)
+  ];
+}
+
+// Expected behavior:
+// - Population in |1⟩ decays exponentially: P_1(t) = exp(-γt)
+// - Population in |0⟩ increases: P_0(t) = 1 - exp(-γt)
+// - Steady state: ρ_ss = |0⟩⟨0| (all population in ground state)
+// - Coherences decay due to both unitary and dissipative evolution
+
+// Extension: Two-qubit amplitude damping
+experiment two_qubit_damp {
+  // Initial Bell state: |Φ+⟩ = (|00⟩ + |11⟩)/√2
+  const sqrt2 = 1.414213562373095;
+  init: rho([
+    [0.5, 0, 0, 0.5],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0.5, 0, 0, 0.5]
+  ]);
+  
+  // Both qubits experience independent amplitude damping
+  // L1 = σ− ⊗ I, L2 = I ⊗ σ−
+  matrix L1 = tensor(L, [[1, 0], [0, 1]]);
+  matrix L2 = tensor([[1, 0], [0, 1]], L);
+  
+  evolution: evolve(init, 0*L1, timegrid=(0.0, 0.05, 401), 
+                    Lindblad(L1, gamma), 
+                    Lindblad(L2, gamma));
+  
+  measurements: [
+    (0.0, z_basis),
+    (5.0, z_basis),
+    (10.0, z_basis),
+    (20.0, z_basis)
+  ];
+}

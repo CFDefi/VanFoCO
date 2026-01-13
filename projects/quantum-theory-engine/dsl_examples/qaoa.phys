@@ -1,0 +1,147 @@
+// Quantum Approximate Optimization Algorithm (QAOA) for MaxCut
+// Hybrid quantum-classical algorithm for combinatorial optimization
+
+system QAOA_MaxCut {
+    param N = 4;            // Number of vertices
+    param p = 3;            // Number of QAOA layers (depth)
+    param max_iter = 50;    // Classical optimization iterations
+    
+    // Graph: each vertex is a qubit (|0> or |1> indicates partition)
+    space = qubit("v0") * qubit("v1") * qubit("v2") * qubit("v3");
+    
+    // Example graph: 4-vertex cycle with diagonal
+    const edges = [
+        (0, 1), (1, 2), (2, 3), (3, 0),  // Cycle
+        (0, 2), (1, 3)                    // Diagonals
+    ];
+    
+    // Problem Hamiltonian: MaxCut objective
+    // C(z) = number of cut edges = sum_{(i,j)} (1 - z_i * z_j) / 2
+    // Encode as H_C = -C(z) (minimize = maximize cut)
+    hamiltonian H_problem = sum over (i, j) in edges {
+        0.5 * (I - sigma_z(v_i) ⊗ sigma_z(v_j))
+    };
+    
+    // Mixer Hamiltonian: explore state space
+    hamiltonian H_mixer = sum over i in 0..N {
+        sigma_x(v_i)
+    };
+    
+    // QAOA circuit with 2p variational parameters (gamma, beta)
+    circuit qaoa_circuit(gamma, beta) {
+        // Initialize in equal superposition: |++++>
+        for i in 0..N {
+            H on v_i;
+        }
+        
+        // Alternate between problem and mixer layers
+        for layer in 0..p {
+            // Problem unitary: e^{-i * gamma[layer] * H_problem}
+            for (i, j) in edges {
+                // Decompose ZZ interaction
+                CNOT control=v_i target=v_j;
+                Rz(2 * gamma[layer]) on v_j;
+                CNOT control=v_i target=v_j;
+            }
+            
+            // Mixer unitary: e^{-i * beta[layer] * H_mixer}
+            for i in 0..N {
+                Rx(2 * beta[layer]) on v_i;
+            }
+        }
+    }
+    
+    // Cost function: expectation of H_problem
+    function cost(gamma, beta) {
+        let psi = qaoa_circuit(gamma, beta);
+        return <psi | H_problem | psi>;
+    }
+    
+    // Alternative: sample bitstrings and compute average cut value
+    function cost_sampling(gamma, beta, num_shots=1000) {
+        let psi = qaoa_circuit(gamma, beta);
+        let total_cost = 0;
+        
+        for shot in 0..num_shots {
+            bitstring = measure(psi, computational_basis);
+            cut_value = count_cut_edges(bitstring, edges);
+            total_cost += cut_value;
+        }
+        
+        return total_cost / num_shots;
+    }
+    
+    // Classical optimization of variational parameters
+    optimize {
+        method = "COBYLA";
+        initial_gamma = random_uniform(0, 2*pi, size=p);
+        initial_beta = random_uniform(0, pi, size=p);
+        
+        (gamma_opt, beta_opt) = minimize(
+            cost,
+            initial_guess=(initial_gamma, initial_beta),
+            max_iterations=max_iter
+        );
+        
+        optimal_cost = cost(gamma_opt, beta_opt);
+    }
+    
+    // Extract solution
+    solution {
+        let psi_final = qaoa_circuit(gamma_opt, beta_opt);
+        
+        // Sample most likely bitstring
+        counts = measure(psi_final, shots=10000, return_counts=true);
+        best_bitstring = argmax(counts);
+        best_cut = count_cut_edges(best_bitstring, edges);
+        
+        print "Optimal parameters:";
+        print "  gamma = {}", gamma_opt;
+        print "  beta = {}", beta_opt;
+        print "Best bitstring: {}", best_bitstring;
+        print "Cut value: {}", best_cut;
+    }
+    
+    // Benchmark against classical algorithm
+    benchmark {
+        // Exact solution by brute force (only feasible for small N)
+        max_cut_exact = 0;
+        for bitstring in all_bitstrings(N) {
+            cut = count_cut_edges(bitstring, edges);
+            if cut > max_cut_exact {
+                max_cut_exact = cut;
+                best_exact = bitstring;
+            }
+        }
+        
+        approximation_ratio = best_cut / max_cut_exact;
+        print "Approximation ratio: {:.2%}", approximation_ratio;
+        
+        // For p=1, expect ~0.7 for random graphs
+        // For p->infinity, expect ~1.0 (optimal)
+    }
+    
+    // Analyze performance vs depth
+    depth_study {
+        for p_test in [1, 2, 3, 4, 5] {
+            p = p_test;
+            run_qaoa();
+            record (p_test, approximation_ratio);
+        }
+        
+        plot depth_vs_performance;
+        // Expected: diminishing returns, p=3-5 usually sufficient
+    }
+}
+
+// QAOA properties:
+// - Universal for combinatorial optimization (in limit p->∞)
+// - Shallow circuits: good for NISQ devices
+// - Trainable on real hardware (gradient-free optimization)
+// - Heuristic performance depends on problem structure
+
+// Applications:
+// - MaxCut, Max-SAT, graph coloring
+// - Portfolio optimization
+// - Vehicle routing
+// - Protein folding

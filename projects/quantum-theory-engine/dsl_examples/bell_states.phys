@@ -1,0 +1,86 @@
+// Bell State Preparation and Measurement
+// Demonstrates two-qubit entanglement and correlation measurements
+
+// Physical parameters
+const omega = 1.0;
+
+// Two-qubit Pauli operators
+matrix I = [[1, 0], [0, 1]];
+matrix X = [[0, 1], [1, 0]];
+matrix Z = [[1, 0], [0, -1]];
+
+// Tensor products for two qubits
+matrix I_I = tensor(I, I);
+matrix X_I = tensor(X, I);
+matrix I_X = tensor(I, X);
+matrix Z_Z = tensor(Z, Z);
+matrix X_X = tensor(X, X);
+
+// CNOT gate: |00⟩ → |00⟩, |01⟩ → |01⟩, |10⟩ → |11⟩, |11⟩ → |10⟩
+matrix CNOT = [
+  [1, 0, 0, 0],
+  [0, 1, 0, 0],
+  [0, 0, 0, 1],
+  [0, 0, 1, 0]
+];
+
+// Hadamard gate on first qubit
+matrix H_I = tensor(
+  [[0.707107, 0.707107], [0.707107, -0.707107]],
+  I
+);
+
+// Bell state measurement operators
+// |Φ+⟩⟨Φ+| = (|00⟩ + |11⟩)(⟨00| + ⟨11|) / 2
+measure bell_basis: Projective([
+  [  // |Φ+⟩⟨Φ+|
+    [0.5, 0, 0, 0.5],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0.5, 0, 0, 0.5]
+  ],
+  [  // |Φ-⟩⟨Φ-|
+    [0.5, 0, 0, -0.5],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [-0.5, 0, 0, 0.5]
+  ],
+  [  // |Ψ+⟩⟨Ψ+|
+    [0, 0, 0, 0],
+    [0, 0.5, 0.5, 0],
+    [0, 0.5, 0.5, 0],
+    [0, 0, 0, 0]
+  ],
+  [  // |Ψ-⟩⟨Ψ-|
+    [0, 0, 0, 0],
+    [0, 0.5, -0.5, 0],
+    [0, -0.5, 0.5, 0],
+    [0, 0, 0, 0]
+  ]
+]);
+
+// Computational basis measurement (Z⊗Z)
+measure comp_basis: Projective([
+  [[1,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]],  // |00⟩⟨00|
+  [[0,0,0,0], [0,1,0,0], [0,0,0,0], [0,0,0,0]],  // |01⟩⟨01|
+  [[0,0,0,0], [0,0,0,0], [0,0,1,0], [0,0,0,0]],  // |10⟩⟨10|
+  [[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,1]]   // |11⟩⟨11|
+]);
+
+experiment bell_state_prep {
+  // Start in |00⟩
+  init: ket(vec(1, 0, 0, 0));
+  
+  // No time evolution, just gate operations
+  // (In real implementation, would apply H_I then CNOT)
+  
+  measurements: [
+    (0.0, bell_basis),
+    (0.0, comp_basis)
+  ];
+}
+
+// Expected results:
+// - Bell basis: 100% probability in |Φ+⟩ state
+// - Computational basis: 50% |00⟩, 50% |11⟩
+// - Perfect correlation: if qubit 1 is |0⟩, qubit 2 is |0⟩

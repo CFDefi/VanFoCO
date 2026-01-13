@@ -1,0 +1,13 @@
+[package]
+name = "qte-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+quantum-theory-engine = { path = "../crates/core_engine" }
+clap.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+hdf5.workspace = true

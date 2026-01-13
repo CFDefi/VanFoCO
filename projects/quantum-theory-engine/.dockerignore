@@ -1,0 +1,37 @@
+# Build artifacts
+target/
+**/target/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation build
+docs/_build/
+
+# Test artifacts
+*.log
+test_results/
+
+# Temporary files
+*.tmp
+*.bak

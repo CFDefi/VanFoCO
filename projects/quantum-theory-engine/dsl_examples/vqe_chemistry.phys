@@ -1,0 +1,119 @@
+// Variational Quantum Eigensolver (VQE) for molecular hydrogen (H2)
+// Finds ground state energy using parameterized quantum circuits
+
+system VQE_H2 {
+    param bond_length = 0.74;   // Angstroms (equilibrium ~0.74)
+    param n_layers = 3;         // Circuit depth
+    param max_iter = 100;       // Optimization iterations
+    
+    // Map H2 to 2-qubit Hamiltonian (Jordan-Wigner encoding)
+    // Minimal basis: 1s orbital on each H atom
+    space = qubit("spin_up") * qubit("spin_down");
+    
+    // Hamiltonian in Pauli basis (from quantum chemistry)
+    // H = c0*I + c1*Z0 + c2*Z1 + c3*Z0Z1 + c4*X0X1 + c5*Y0Y1
+    // Coefficients depend on bond_length
+    
+    function compute_coefficients(R) {
+        // Simplified model (real values from Hartree-Fock)
+        let c0 = -1.0537 + 0.3942 / R;
+        let c1 = 0.0113;
+        let c2 = 0.0113;
+        let c3 = 0.1819;
+        let c4 = 0.0453;
+        let c5 = 0.0453;
+        return (c0, c1, c2, c3, c4, c5);
+    }
+    
+    let (c0, c1, c2, c3, c4, c5) = compute_coefficients(bond_length);
+    
+    hamiltonian H = c0 * I ⊗ I +
+                    c1 * sigma_z(spin_up) ⊗ I +
+                    c2 * I ⊗ sigma_z(spin_down) +
+                    c3 * sigma_z(spin_up) ⊗ sigma_z(spin_down) +
+                    c4 * sigma_x(spin_up) ⊗ sigma_x(spin_down) +
+                    c5 * sigma_y(spin_up) ⊗ sigma_y(spin_down);
+    
+    // Variational ansatz: hardware-efficient circuit
+    // Layer structure: Ry rotations + entangling CNOT
+    circuit ansatz(params) {
+        // Hartree-Fock initial state: |01> (spin up, spin down)
+        prepare |01>;
+        
+        for layer in 0..n_layers {
+            // Single-qubit rotations (6 parameters per layer)
+            Ry(params[6*layer + 0]) on spin_up;
+            Ry(params[6*layer + 1]) on spin_down;
+            Rx(params[6*layer + 2]) on spin_up;
+            Rx(params[6*layer + 3]) on spin_down;
+            
+            // Entangling gate
+            CNOT control=spin_up target=spin_down;
+            
+            // More rotations
+            Ry(params[6*layer + 4]) on spin_up;
+            Ry(params[6*layer + 5]) on spin_down;
+        }
+    }
+    
+    // Cost function: expectation value <psi(params) | H | psi(params)>
+    function energy(params) {
+        let psi = ansatz(params);
+        return <psi | H | psi>;
+    }
+    
+    // Optimization: minimize energy
+    optimize {
+        method = "COBYLA";  // Gradient-free (good for noisy hardware)
+        initial_params = random_uniform(-pi, pi, size=6*n_layers);
+        
+        for iter in 0..max_iter {
+            current_params = update_step(current_params, energy);
+            current_energy = energy(current_params);
+            
+            if abs(gradient(energy)) < 1e-5 {
+                break;
+            }
+        }
+        
+        optimal_params = current_params;
+        ground_energy = energy(optimal_params);
+    }
+    
+    // Exact diagonalization for comparison
+    exact_energy = min(eigenvalues(H));
+    
+    test {
+        assert abs(ground_energy - exact_energy) < 0.01;  // mH accuracy
+        
+        print "Bond length: {} Å", bond_length;
+        print "VQE energy: {:.6f} Ha", ground_energy;
+        print "Exact energy: {:.6f} Ha", exact_energy;
+        print "Error: {:.6f} mHa", (ground_energy - exact_energy) * 1000;
+    }
+    
+    // Scan potential energy curve
+    scan {
+        for R in linspace(0.3, 2.0, steps=20) {
+            bond_length = R;
+            run_vqe();
+            record (R, ground_energy);
+        }
+        
+        plot potential_curve;
+        find equilibrium_distance = argmin(ground_energy);
+        print "Equilibrium distance: {:.3f} Å", equilibrium_distance;
+    }
+}
+
+// Extensions:
+// - Larger molecules (LiH, BeH2, etc.) - more qubits
+// - Active space selection for efficiency
+// - Quantum subspace expansion for excited states
+// - Error mitigation techniques for noisy devices
+// - Classical shadow tomography for measurement reduction
+
+// Real-world impact:
+// - Drug discovery: protein-ligand binding
+// - Materials science: catalyst design
+// - Battery research: electrolyte optimization

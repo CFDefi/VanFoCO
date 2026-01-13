@@ -1,0 +1,80 @@
+// Jaynes-Cummings Model
+// Interaction between a two-level atom and a quantized cavity mode
+// Simplified version with truncated Fock space
+
+const g = 0.1;      // Coupling strength
+const omega_a = 1.0; // Atomic frequency
+const omega_c = 1.0; // Cavity frequency
+const delta = 0.0;   // Detuning = omega_c - omega_a
+
+// Truncate cavity to n_max = 2 (0, 1, 2 photons)
+// Total Hilbert space: |atom⟩ ⊗ |cavity⟩ = 2 × 3 = 6 dimensions
+// Basis: |0,0⟩, |0,1⟩, |0,2⟩, |1,0⟩, |1,1⟩, |1,2⟩
+
+// Atom operators (2×2)
+matrix sigma_minus = [[0, 1], [0, 0]];
+matrix sigma_plus = [[0, 0], [1, 0]];
+matrix sigma_z = [[1, 0], [0, -1]];
+
+// Cavity operators (3×3)
+matrix a = [
+  [0, 1, 0],
+  [0, 0, 1.414214],
+  [0, 0, 0]
+];
+
+matrix a_dag = [
+  [0, 0, 0],
+  [1, 0, 0],
+  [0, 1.414214, 0]
+];
+
+matrix n_cav = [
+  [0, 0, 0],
+  [0, 1, 0],
+  [0, 0, 2]
+];
+
+// Identity operators
+matrix I2 = [[1, 0], [0, 1]];
+matrix I3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+
+// Jaynes-Cummings Hamiltonian in rotating frame:
+// H = δ σ_z/2 ⊗ I + ω_c I ⊗ n + g(σ+ ⊗ a + σ- ⊗ a†)
+
+// Note: In DSL, we would construct full 6×6 operators
+// For now, this is a conceptual example
+
+symbol t;
+
+Hamiltonian H_JC = 
+  (delta/2) * tensor(sigma_z, I3) + 
+  omega_c * tensor(I2, n_cav) +
+  g * (tensor(sigma_plus, a) + tensor(sigma_minus, a_dag));
+
+measure atom_excited: Projective([
+  // Trace out cavity, project atom onto |1⟩
+  // This requires partial trace - advanced feature
+  [[1,0,0,0,0,0], [0,1,0,0,0,0], [0,0,1,0,0,0], [0,0,0,0,0,0], [0,0,0,0,0,0], [0,0,0,0,0,0]],
+  [[0,0,0,0,0,0], [0,0,0,0,0,0], [0,0,0,0,0,0], [0,0,0,1,0,0], [0,0,0,0,1,0], [0,0,0,0,0,1]]
+]);
+
+experiment jaynes_cummings {
+  // Initial state: atom excited |1⟩, cavity ground |0⟩
+  init: ket(vec(0, 0, 0, 1, 0, 0));  // |1,0⟩
+  
+  evolution: evolve(init, H_JC, timegrid=(0.0, 0.01, 1001));
+  
+  measurements: [
+    (0.0, atom_excited),
+    (5.0, atom_excited),
+    (10.0, atom_excited),
+    (15.0, atom_excited),
+    (20.0, atom_excited)
+  ];
+}
+
+// Expected behavior:
+// - Vacuum Rabi oscillations: energy swaps between atom and cavity
+// - Collapse and revival in multi-photon states
+// - Oscillation frequency: Ω = 2g√(n+1) for n-photon state
