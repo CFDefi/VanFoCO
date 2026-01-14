@@ -137,6 +137,12 @@ HTML_TEMPLATE = """
             gap: 4px;
         }
         
+        .icon {
+            font-weight: bold;
+            color: #0054E3;
+            font-size: 12px;
+        }
+        
         .toolbar-btn:hover {
             background: linear-gradient(to bottom, #FFF 0%, #F0F0F0 100%);
             border-color: #0054E3;
@@ -479,7 +485,7 @@ HTML_TEMPLATE = """
     <div class="window">
         <!-- Title Bar -->
         <div class="title-bar">
-            <span>⚛️ Quantum Theory Engine v1.0 - Professional Edition</span>
+            <span>Quantum Theory Engine v1.0 - Professional Edition</span>
             <div class="title-bar-buttons">
                 <div class="title-btn">_</div>
                 <div class="title-btn">□</div>
@@ -498,18 +504,18 @@ HTML_TEMPLATE = """
         
         <!-- Toolbar -->
         <div class="toolbar">
-            <div class="toolbar-btn" onclick="switchTab('simulator')">🆕 New</div>
-            <div class="toolbar-btn">📂 Open</div>
-            <div class="toolbar-btn">💾 Save</div>
+            <div class="toolbar-btn" onclick="switchTab('simulator')"><span class="icon">+</span> New</div>
+            <div class="toolbar-btn"><span class="icon">▤</span> Open</div>
+            <div class="toolbar-btn"><span class="icon">▼</span> Save</div>
             <div class="separator"></div>
-            <div class="toolbar-btn" onclick="switchTab('simulator')">▶️ Simulate</div>
-            <div class="toolbar-btn" onclick="switchTab('prover')">🔬 Prove</div>
-            <div class="toolbar-btn">📊 Fit</div>
+            <div class="toolbar-btn" onclick="switchTab('simulator')"><span class="icon">▶</span> Simulate</div>
+            <div class="toolbar-btn" onclick="switchTab('prover')"><span class="icon">✓</span> Prove</div>
+            <div class="toolbar-btn"><span class="icon">◆</span> Fit</div>
             <div class="separator"></div>
-            <div class="toolbar-btn" onclick="showTemplates()">📚 Templates</div>
-            <div class="toolbar-btn" onclick="showDiagnostics()">🔍 Diagnostics</div>
+            <div class="toolbar-btn" onclick="showTemplates()"><span class="icon">≡</span> Templates</div>
+            <div class="toolbar-btn" onclick="showDiagnostics()"><span class="icon">◉</span> Diagnostics</div>
             <div class="separator"></div>
-            <div class="toolbar-btn" onclick="showAbout()">❓ Help</div>
+            <div class="toolbar-btn" onclick="showAbout()"><span class="icon">?</span> Help</div>
         </div>
         
         <!-- Tabs -->
@@ -548,9 +554,9 @@ HTML_TEMPLATE = """
                     </ol>
                 </div>
                 <div class="quick-buttons">
-                    <button class="quick-btn primary" onclick="switchTab('simulator')">🚀 Start Simulation</button>
-                    <button class="quick-btn success" onclick="showTemplates()">📚 Browse Templates</button>
-                    <button class="quick-btn warning" onclick="showDiagnostics()">📊 View Diagnostics</button>
+                    <button class="quick-btn primary" onclick="switchTab('simulator')">Start Simulation</button>
+                    <button class="quick-btn success" onclick="showTemplates()">Browse Templates</button>
+                    <button class="quick-btn warning" onclick="showDiagnostics()">View Diagnostics</button>
                 </div>
             </div>
             
@@ -593,8 +599,8 @@ HTML_TEMPLATE = """
                                 </div>
                             </div>
                             
-                            <button class="btn btn-run" onclick="runSimulation()">▶️ Run Simulation</button>
-                            <button class="btn btn-stop">⏹️ Stop</button>
+                            <button class="btn btn-run" onclick="runSimulation()"><span class="icon">▶</span> Run Simulation</button>
+                            <button class="btn btn-stop"><span class="icon">■</span> Stop</button>
                         </div>
                     </div>
                     
@@ -620,7 +626,7 @@ Configure parameters and click 'Run Simulation'.
                         <input type="text" id="statement" value="sigma_x * sigma_x = I" style="font-family: 'Courier New', monospace;">
                     </div>
                     
-                    <button class="quick-btn primary" onclick="proveTheorem()" style="margin: 20px 0;">🔬 Prove Theorem</button>
+                    <button class="quick-btn primary" onclick="proveTheorem()" style="margin: 20px 0;">Prove Theorem</button>
                     
                     <div class="form-group">
                         <label>Proof Transcript:</label>
