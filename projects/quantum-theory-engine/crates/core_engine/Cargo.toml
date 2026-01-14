@@ -29,7 +29,7 @@ argmin-math.workspace = true
 # Serialization
 serde.workspace = true
 serde_json.workspace = true
-hdf5.workspace = true
+# hdf5.workspace = true  # Optional - disabled for simpler build
 
 # Error handling
 thiserror.workspace = true
@@ -62,9 +62,6 @@ criterion.workspace = true
 tokio.workspace = true
 
 [[bench]]
-name = "executor"
-harness = false
-
-[[bench]]
 name = "production_benchmarks"
 harness = false
+path = "../../benches/production_benchmarks.rs"
